@@ -2,33 +2,42 @@ const axios = require("axios");
 
 const {
   GraphQLObjectType,
-  GraphQLInt,
+  GraphQLFloat,
   GraphQLString,
-  GraphQLBoolean,
   GraphQLList,
   GraphQLSchema
 } = require("graphql");
 
-// Launch Type
-const LaunchType = new GraphQLObjectType({
-  name: "Launch",
+// Country Type
+const CountryType = new GraphQLObjectType({
+  name: "Country",
   fields: () => ({
-    flight_number: { type: GraphQLInt },
-    mission_name: { type: GraphQLString },
-    launch_year: { type: GraphQLString },
-    launch_date_local: { type: GraphQLString },
-    launch_success: { type: GraphQLBoolean },
-    rocket: { type: RocketType }
+    id: { type: GraphQLString },
+    iso2Code: { type: GraphQLString },
+    name: { type: GraphQLString },
+    capitalCity: { type: GraphQLString },
+    longitude: { type: GraphQLFloat },
+    latitude: { type: GraphQLFloat },
+    region: { type: RegionType },
+    incomeLevel: { type: IncomeLevelType }
   })
 });
 
-// Rocket Type
-const RocketType = new GraphQLObjectType({
-  name: "Rocket",
+// Region Type
+const RegionType = new GraphQLObjectType({
+  name: "Region",
   fields: () => ({
-    rocket_id: { type: GraphQLString },
-    rocket_name: { type: GraphQLString },
-    rocket_type: { type: GraphQLString }
+    id: { type: GraphQLString },
+    value: { type: GraphQLString }
+  })
+});
+
+// Region Type
+const IncomeLevelType = new GraphQLObjectType({
+  name: "IncomeLevel",
+  fields: () => ({
+    id: { type: GraphQLString },
+    value: { type: GraphQLString }
   })
 });
 
@@ -36,41 +45,43 @@ const RocketType = new GraphQLObjectType({
 const RootQuery = new GraphQLObjectType({
   name: "RootQueryType",
   fields: {
-    launches: {
-      type: new GraphQLList(LaunchType),
+    countries: {
+      type: new GraphQLList(CountryType),
       resolve(parent, args) {
         return axios
-          .get("https://api.spacexdata.com/v3/launches")
-          .then(res => res.data);
+          .get(
+            "http://api.worldbank.org/countries?format=json&page=1&per_page=350"
+          )
+          .then(res => res.data[1]);
       }
     },
-    launch: {
-      type: LaunchType,
+    country: {
+      type: CountryType,
       args: {
-        flight_number: { type: GraphQLInt }
+        id: { type: GraphQLString }
       },
       resolve(parent, args) {
         return axios
-          .get(`https://api.spacexdata.com/v3/launches/${args.flight_number}`)
-          .then(res => res.data);
+          .get(`https://api.worldbank.org/v2/country/${args.id}?format=json`)
+          .then(res => res.data[1][0]);
       }
     },
-    rockets: {
-      type: new GraphQLList(RocketType),
+    regions: {
+      type: new GraphQLList(RegionType),
       resolve(parent, args) {
         return axios
-          .get("https://api.spacexdata.com/v3/rockets")
+          .get("https://api.worldbank.org/v2/region?format=json")
           .then(res => res.data);
       }
     },
-    rocket: {
-      type: RocketType,
+    region: {
+      type: RegionType,
       args: {
-        id: { type: GraphQLInt }
+        id: { type: GraphQLString }
       },
       resolve(parent, args) {
         return axios
-          .get(`https://api.spacexdata.com/v3/rockets/${args.id}`)
+          .get(`https://api.worldbank.org/v2/region/${args.id}`)
           .then(res => res.data);
       }
     }
